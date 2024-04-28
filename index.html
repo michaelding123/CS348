@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+</html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Players List</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Players List</h1>
+  <table id="players-table">
+    <thead>
+      <tr>
+        <th>Actions</th>
+      </tr>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Team</th>
+        <th>Points Per Game</th>
+        <th>Rebounds Per Game</th>
+        <th>Assists Per Game</th>
+        <th>Steals Per Game</th>
+        <th>Blocks Per Game</th>
+        <th>Free Throw Percentage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Players will be dynamically added here -->
+    </tbody>
+  </table>
+
+  <h2>Get Player Stats</h2>
+  <label for="playerName">Player Name:</label>
+  <input type="text" id="playerName" placeholder="Enter player name">
+  <button id="getStatsButton">Get Stats</button>
+  <div id="playerStats"></div>
+
+  <h2>Get Player Stats by Age</h2>
+  <form id="getStatsByAgeForm">
+      <label for="playerAge">Player Age:</label>
+      <input type="number" id="playerAge" required>
+      <button type="submit">Get Stats</button>
+  </form>
+  <div id="statsByAgeResult"></div>
+
+  <script>
+    // Fetch players data from the Node.js server
+    fetch('/players')
+      .then(response => response.json())
+      .then(data => {
+        const playersTable = document.getElementById('players-table').getElementsByTagName('tbody')[0];
+        data.forEach(player => {
+          const row = playersTable.insertRow();
+          row.insertCell().textContent = player.id;
+          row.insertCell().textContent = player.name;
+          row.insertCell().textContent = player.age;
+          row.insertCell().textContent = player.team;
+          row.insertCell().textContent = player.points_per_game;
+          row.insertCell().textContent = player.rebounds_per_game;
+          row.insertCell().textContent = player.assists_per_game;
+          row.insertCell().textContent = player.steals_per_game;
+          row.insertCell().textContent = player.blocks_per_game;
+          row.insertCell().textContent = player.free_throw_percentage;
+          // Add a new cell for the delete button
+          const actionsCell = row.insertCell();
+          const deleteButton = document.createElement('button');
+          deleteButton.textContent = 'Delete';
+          deleteButton.addEventListener('click', () => deletePlayer(player.id));
+          actionsCell.appendChild(deleteButton);
+        });
+      })
+      .catch(error => console.error('Error fetching players data:', error));
+
+    function getPlayerStats() {
+      const playerName = document.getElementById('playerName').value;
+      const playerStatsDiv = document.getElementById('playerStats');
+      playerStatsDiv.innerHTML = '';
+
+      fetch(`/players/${playerName}`)
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error(`HTTP error ${response.status}`);
+          }
+        })
+        .then(player => {
+          const table = document.createElement('table');
+          const nameRow = table.insertRow();
+          const nameCell = nameRow.insertCell();
+          nameCell.textContent = `Name: ${player.name}`;
+
+          const ageRow = table.insertRow();
+          const ageCell = ageRow.insertCell();
+          ageCell.textContent = `Age: ${player.age}`;
+
+          const teamRow = table.insertRow();
+          const teamCell = teamRow.insertCell();
+          teamCell.textContent = `Team: ${player.team}`;
+
+          const pointsRow = table.insertRow();
+          const pointsCell = pointsRow.insertCell();
+          pointsCell.textContent = `Points Per Game: ${player.points_per_game}`;
+
+          const reboundsRow = table.insertRow();
+          const reboundsCell = reboundsRow.insertCell();
+          reboundsCell.textContent = `Rebounds Per Game: ${player.rebounds_per_game}`;
+
+          const assistsRow = table.insertRow();
+          const assistsCell = assistsRow.insertCell();
+          assistsCell.textContent = `Assists Per Game: ${player.assists_per_game}`;
+
+          const stealsRow = table.insertRow();
+          const stealsCell = stealsRow.insertCell();
+          stealsCell.textContent = `Steals Per Game: ${player.steals_per_game}`;
+
+          const blocksRow = table.insertRow();
+          const blocksCell = blocksRow.insertCell();
+          blocksCell.textContent = `Blocks Per Game: ${player.blocks_per_game}`;
+
+          const ftRow = table.insertRow();
+          const ftCell = ftRow.insertCell();
+          ftCell.textContent = `Free Throw Percentage: ${player.free_throw_percentage}`;
+
+          playerStatsDiv.appendChild(table);
+        })
+        .catch(error => {
+          console.error('Error fetching player stats:', error);
+          playerStatsDiv.textContent = 'Error fetching player stats';
+        });
+    }
+    function deletePlayer(playerId) {
+      if (confirm(`Are you sure you want to delete the player with ID ${playerId}?`)) {
+        fetch(`/players/${playerId}`, {
+          method: 'DELETE'
+        })
+          .then(response => {
+            if (response.ok) {
+              alert('Player deleted successfully');
+              // Optionally, you can reload the page to update the players list
+              location.reload();
+            } else {
+              return response.text().then(error => {
+                throw new Error(error);
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Error deleting player:', error);
+            alert(`Error deleting player: ${error}`);
+          });
+      }
+    }
+
+    function getStatsByAge(playerAge) {
+      const resultDiv = document.getElementById('statsByAgeResult');
+      resultDiv.innerHTML = '';
+      fetch(`/players/age/${playerAge}`)
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error(`HTTP error ${response.status}`);
+          }
+        })
+        .then(data => {
+          const players = data.players;
+          const averageStats = data.averageStats;
+
+          if (players.length > 0) {
+            const table = document.createElement('table');
+            const headerRow = table.insertRow();
+            const headers = ['Name', 'Age', 'Team', 'PPG', 'RPG', 'APG', 'SPG', 'BPG', 'FT%'];
+            headers.forEach(header => {
+              const th = document.createElement('th');
+              th.textContent = header;
+              headerRow.appendChild(th);
+            });
+
+            players.forEach(player => {
+              const row = table.insertRow();
+              row.insertCell().textContent = player.name;
+              row.insertCell().textContent = player.age;
+              row.insertCell().textContent = player.team;
+              row.insertCell().textContent = player.points_per_game;
+              row.insertCell().textContent = player.rebounds_per_game;
+              row.insertCell().textContent = player.assists_per_game;
+              row.insertCell().textContent = player.steals_per_game;
+              row.insertCell().textContent = player.blocks_per_game;
+              row.insertCell().textContent = player.free_throw_percentage;
+            });
+
+            const averageRow = table.insertRow();
+            const averageCell = averageRow.insertCell();
+            averageCell.colSpan = 3;
+            averageCell.textContent = 'Average';
+
+            const ppgAvgCell = averageRow.insertCell();
+            ppgAvgCell.textContent = averageStats.points_per_game.toFixed(2);
+
+            const rpgAvgCell = averageRow.insertCell();
+            rpgAvgCell.textContent = averageStats.rebounds_per_game.toFixed(2);
+
+            const apgAvgCell = averageRow.insertCell();
+            apgAvgCell.textContent = averageStats.assists_per_game.toFixed(2);
+
+            const spgAvgCell = averageRow.insertCell();
+            spgAvgCell.textContent = averageStats.steals_per_game.toFixed(2);
+
+            const bpgAvgCell = averageRow.insertCell();
+            bpgAvgCell.textContent = averageStats.blocks_per_game.toFixed(2);
+
+            const ftAvgCell = averageRow.insertCell();
+            ftAvgCell.textContent = averageStats.free_throw_percentage.toFixed(2);
+
+            resultDiv.appendChild(table);
+          } else {
+            resultDiv.textContent = `No players found with age ${playerAge}`;
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching stats by age:', error);
+          resultDiv.textContent = 'Error fetching player stats';
+        });
+    }
+
+    // Get the form element and attach the submit event listener
+    const getStatsByAgeForm = document.getElementById('getStatsByAgeForm');
+    getStatsByAgeForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const playerAge = Number(document.getElementById('playerAge').value);
+      getStatsByAge(playerAge);
+    });
+    // Get the button element and attach the click event listener
+    const getStatsButton = document.getElementById('getStatsButton');
+    getStatsButton.onclick = getPlayerStats;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const addPlayerForm = document.getElementById('addPlayerForm');
+      if (addPlayerForm) {
+        addPlayerForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const newPlayerID = document.getElementById('newPlayerID').value;
+          const newPlayerName = document.getElementById('newPlayerName').value;
+          const newPlayerAge = document.getElementById('newPlayerAge').value;
+          const newPlayerTeam = document.getElementById('newPlayerTeam').value;
+          const newPlayerPointsPerGame = document.getElementById('newPlayerPointsPerGame').value;
+          const newPlayerReboundsPerGame = document.getElementById('newPlayerReboundsPerGame').value;
+          const newPlayerAssistsPerGame = document.getElementById('newPlayerAssistsPerGame').value;
+          const newPlayerStealsPerGame = document.getElementById('newPlayerStealsPerGame').value;
+          const newPlayerBlocksPerGame = document.getElementById('newPlayerBlocksPerGame').value;
+          const newPlayerFreeThrowPercentage = document.getElementById('newPlayerFreeThrowPercentage').value;
+
+          const newPlayerData = {
+            id: Number(newPlayerID),
+            name: newPlayerName,
+            age: Number(newPlayerAge),
+            team: newPlayerTeam,
+            points_per_game: Number(newPlayerPointsPerGame),
+            rebounds_per_game: Number(newPlayerReboundsPerGame),
+            assists_per_game: Number(newPlayerAssistsPerGame),
+            steals_per_game: Number(newPlayerStealsPerGame),
+            blocks_per_game: Number(newPlayerBlocksPerGame),
+            free_throw_percentage: Number(newPlayerFreeThrowPercentage)
+          };
+
+          try {
+            console.log("hello");
+            const response = await fetch('/players', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(newPlayerData)
+            });
+
+            if (response.ok) {
+              alert('Player added successfully');
+              addPlayerForm.reset();
+              location.reload();
+            } else {
+              const error = await response.text();
+              alert(`Error adding player: ${error}`);
+            }
+          } catch (err) {
+            console.error('Error adding player:', err);
+            alert('Error adding player');
+          }
+        });
+      } else {
+        console.error('addPlayerForm element not found');
+      }
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+      const editPlayerForm = document.getElementById('editPlayerForm');
+      if (editPlayerForm) {
+        editPlayerForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const playerId = document.getElementById('editPlayerID').value;
+          const updatedPlayerName = document.getElementById('editPlayerName').value;
+          const updatedPlayerAge = document.getElementById('editPlayerAge').value;
+          const updatedPlayerTeam = document.getElementById('editPlayerTeam').value;
+          const updatedPlayerPointsPerGame = document.getElementById('editPlayerPointsPerGame').value;
+          const updatedPlayerReboundsPerGame = document.getElementById('editPlayerReboundsPerGame').value;
+          const updatedPlayerAssistsPerGame = document.getElementById('editPlayerAssistsPerGame').value;
+          const updatedPlayerStealsPerGame = document.getElementById('editPlayerStealsPerGame').value;
+          const updatedPlayerBlocksPerGame = document.getElementById('editPlayerBlocksPerGame').value;
+          const updatedPlayerFreeThrowPercentage = document.getElementById('editPlayerFreeThrowPercentage').value;
+
+          const updatedPlayerData = {
+            id: Number(playerId),
+            name: updatedPlayerName,
+            age: Number(updatedPlayerAge),
+            team: updatedPlayerTeam,
+            points_per_game: Number(updatedPlayerPointsPerGame),
+            rebounds_per_game: Number(updatedPlayerReboundsPerGame),
+            assists_per_game: Number(updatedPlayerAssistsPerGame),
+            steals_per_game: Number(updatedPlayerStealsPerGame),
+            blocks_per_game: Number(updatedPlayerBlocksPerGame),
+            free_throw_percentage: Number(updatedPlayerFreeThrowPercentage)
+          };
+
+          try {
+            const response = await fetch(`/players/${playerId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(updatedPlayerData)
+            });
+
+            if (response.ok) {
+              alert('Player updated successfully');
+              editPlayerForm.reset();
+              location.reload();
+            } else {
+              const error = await response.text();
+              alert(`Error updating player: ${error}`);
+            }
+          } catch (err) {
+            console.error('Error updating player:', err);
+            alert('Error updating player');
+          }
+        });
+      } else {
+        console.error('editPlayerForm element not found');
+      }
+    });
+  </script>
+  <h2>Add Player</h2>
+  <form id="addPlayerForm">
+    <label for="newPlayerID">ID:</label>
+    <input type="number" id="newPlayerID" required>
+    <label for="newPlayerName">Name:</label>
+    <input type="text" id="newPlayerName" required>
+    <label for="newPlayerAge">Age:</label>
+    <input type="number" id="newPlayerAge" required>
+    <label for="newPlayerTeam">Team:</label>
+    <input type="text" id="newPlayerTeam" required>
+    <label for="newPlayerPointsPerGame">Points Per Game:</label>
+    <input type="number" id="newPlayerPointsPerGame" step="0.01" required>
+    <label for="newPlayerReboundsPerGame">Rebounds Per Game:</label>
+    <input type="number" id="newPlayerReboundsPerGame" step="0.01" required>
+    <label for="newPlayerAssistsPerGame">Assists Per Game:</label>
+    <input type="number" id="newPlayerAssistsPerGame" step="0.01" required>
+    <label for="newPlayerStealsPerGame">Steals Per Game:</label>
+    <input type="number" id="newPlayerStealsPerGame" step="0.01" required>
+    <label for="newPlayerBlocksPerGame">Blocks Per Game:</label>
+    <input type="number" id="newPlayerBlocksPerGame" step="0.01" required>
+    <label for="newPlayerFreeThrowPercentage">Free Throw Percentage:</label>
+    <input type="number" id="newPlayerFreeThrowPercentage" step="0.01" required>
+    <button type="submit">Add Player</button>
+  </form>
+  <h2>Edit Player</h2>
+  <form id="editPlayerForm">
+    <label for="editPlayerID">ID:</label>
+    <input type="number" id="editPlayerID" required>
+    <label for="editPlayerName">Name:</label>
+    <input type="text" id="editPlayerName" required>
+    <label for="editPlayerAge">Age:</label>
+    <input type="number" id="editPlayerAge" required>
+    <label for="editPlayerTeam">Team:</label>
+    <input type="text" id="editPlayerTeam" required>
+    <label for="editPlayerPointsPerGame">Points Per Game:</label>
+    <input type="number" id="editPlayerPointsPerGame" step="0.01" required>
+    <label for="editPlayerReboundsPerGame">Rebounds Per Game:</label>
+    <input type="number" id="editPlayerReboundsPerGame" step="0.01" required>
+    <label for="editPlayerAssistsPerGame">Assists Per Game:</label>
+    <input type="number" id="editPlayerAssistsPerGame" step="0.01" required>
+    <label for="editPlayerStealsPerGame">Steals Per Game:</label>
+    <input type="number" id="editPlayerStealsPerGame" step="0.01" required>
+    <label for="editPlayerBlocksPerGame">Blocks Per Game:</label>
+    <input type="number" id="editPlayerBlocksPerGame" step="0.01" required>
+    <label for="editPlayerFreeThrowPercentage">Free Throw Percentage:</label>
+    <input type="number" id="editPlayerFreeThrowPercentage" step="0.01" required>
+    <button type="submit">Update Player</button>
+  </form>
+</body>
+
+</html>
